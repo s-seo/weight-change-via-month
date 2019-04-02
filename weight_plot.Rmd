@@ -1,0 +1,206 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+
+
+
+```{r include=FALSE}
+#패키지 및 데이터 불러오기
+
+lapply(c('dplyr',
+         'data.table',
+         'reshape',
+         'haven',
+         'rowr',
+         'lubridate',
+         'ggplot2',
+         'gridExtra'), require, character.only=T)
+
+setwd('C:\\Users\\sseo\\Desktop\\R\\weight_plot')
+lf <- grep('dat', list.files(), value=T)
+l1 <- lapply(1:4, function(x) read.csv(lf[x]) %>% 
+               select(-1) %>%
+               mutate(day = as.factor(day))) %>%
+  rbindlist(idcol = T) %>%
+  mutate(sex = ifelse(.id == 1 | .id == 3, 'men', 'women') %>% as.factor(),
+         year = ifelse(.id == 1 | .id == 2, 'former', 'latter') %>% as.factor()) %>%
+  select(-.id) %>% select(sex, year, 1:7)
+```
+
+
+
+
+
+#여자 / 40, 60으로 3 그룹 
+```{r echo=F, fig.height = 10, fig.width = 25}
+wom09_group <- l1 %>%
+  filter(year == 'latter', sex == 'women') %>%
+  mutate(month = substr(as.character(day), 1, 6),
+         age_group = cut(age, breaks = c(0, 40, 60, 100), 
+                         include.lowest = T,
+                         right = F,
+                         labels = c("40미만","40~59", "60이상" ))) %>%
+  group_by(month, age_group) %>%
+  summarise(weight = mean(weight),
+            height = mean(height),
+            BMI = mean(BMI),
+            drink = mean(drink),
+            workout = mean(workout),
+            n = n()) %>% 
+  as.data.frame() %>%
+  mutate(month = paste0(month, '01'))
+
+
+ggplot(wom09_group, aes(x = as.factor(month),
+                        y = height,
+                        group = age_group,
+                        colour = age_group,
+                        size = n)) +
+  geom_line() +
+  theme_minimal() +
+  scale_x_discrete(breaks = paste0(2009:2015, '0101')) +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(size = rel(2)),
+        axis.text.y = element_text(size = rel(2)),
+        legend.title = element_text(size = rel(4)),
+        legend.text = element_text(size=rel(4)),
+        legend.key.size = unit(1, 'cm'),
+        panel.grid.major.x = element_line(colour = 'black', size=1)) 
+```
+
+
+
+#남자 / 40, 60으로 3 그룹 
+```{r echo=F, fig.height = 10, fig.width = 25}
+men09_group <- l1 %>%
+  filter(year == 'latter', sex == 'men') %>%
+  mutate(month = substr(as.character(day), 1, 6),
+         age_group = cut(age, breaks = c(0, 40, 60, 100), 
+                         include.lowest = T,
+                         right = F,
+                         labels = c("40미만","40~59", "60이상" ))) %>%
+  group_by(month, age_group) %>%
+  summarise(weight = mean(weight),
+            height = mean(height),
+            BMI = mean(BMI),
+            drink = mean(drink),
+            workout = mean(workout),
+            n = n()) %>% 
+  as.data.frame() %>%
+  mutate(month = paste0(month, '01'))
+
+
+ggplot(men09_group, aes(x = as.factor(month),
+                        y = height,
+                        group = age_group,
+                        colour = age_group,
+                        size = n)) +
+  geom_line() +
+  theme_minimal() +
+  scale_x_discrete(breaks = paste0(2009:2015, '0101')) +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(size = rel(2)),
+        axis.text.y = element_text(size = rel(2)),
+        legend.title = element_text(size = rel(4)),
+        legend.text = element_text(size=rel(4)),
+        legend.key.size = unit(2, 'cm'),
+        panel.grid.major.x = element_line(colour = 'black', size=1)) 
+```
+
+
+
+#여자 / 40, 50, 60으로 4 그룹 
+```{r echo=F, fig.height = 10, fig.width = 25}
+wom09_group <- l1 %>%
+  filter(year == 'latter', sex == 'women') %>%
+  mutate(month = substr(as.character(day), 1, 6),
+         age_group = cut(age, breaks = c(0, 40, 50, 60, 100), 
+                         include.lowest = T,
+                         right = F,
+                         labels = c("40미만","40~49","50~59", "60이상" ))) %>%
+  group_by(month, age_group) %>%
+  summarise(weight = mean(weight),
+            height = mean(height),
+            BMI = mean(BMI),
+            drink = mean(drink),
+            workout = mean(workout),
+            n = n()) %>% 
+  as.data.frame() %>%
+  mutate(month = paste0(month, '01'))
+
+
+ggplot(wom09_group, aes(x = as.factor(month),
+                        y = height,
+                        group = age_group,
+                        colour = age_group,
+                        size = n)) +
+  geom_line() +
+  theme_minimal() +
+  scale_x_discrete(breaks = paste0(2009:2015, '0101')) +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(size = rel(2)),
+        axis.text.y = element_text(size = rel(2)),
+        legend.title = element_text(size = rel(4)),
+        legend.text = element_text(size=rel(4)),
+        legend.key.size = unit(1, 'cm'),
+        panel.grid.major.x = element_line(colour = 'black', size=1)) 
+```
+
+
+
+#남자 / 40, 50, 60으로 4 그룹 
+```{r echo=F, fig.height = 10, fig.width = 25}
+men09_group <- l1 %>%
+  filter(year == 'latter', sex == 'men') %>%
+  mutate(month = substr(as.character(day), 1, 6),
+         age_group = cut(age, breaks = c(0, 40, 50, 60, 100), 
+                         include.lowest = T,
+                         right = F,
+                         labels = c("40미만","40~49","50~59", "60이상" ))) %>%
+  group_by(month, age_group) %>%
+  summarise(weight = mean(weight),
+            height = mean(height),
+            BMI = mean(BMI),
+            drink = mean(drink),
+            workout = mean(workout),
+            n = n()) %>% 
+  as.data.frame() %>%
+  mutate(month = paste0(month, '01'))
+
+
+ggplot(men09_group, aes(x = as.factor(month),
+                        y = height,
+                        group = age_group,
+                        colour = age_group,
+                        size = n)) +
+  geom_line() +
+  theme_minimal() +
+  scale_x_discrete(breaks = paste0(2009:2015, '0101')) +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(size = rel(2)),
+        axis.text.y = element_text(size = rel(2)),
+        legend.title = element_text(size = rel(4)),
+        legend.text = element_text(size=rel(4)),
+        legend.key.size = unit(2, 'cm'),
+        panel.grid.major.x = element_line(colour = 'black', size=1)) 
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
