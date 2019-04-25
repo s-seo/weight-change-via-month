@@ -1,0 +1,474 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+
+
+```{r include=FALSE}
+#패키지 및 데이터 불러오기
+
+lapply(c('dplyr',
+         'data.table',
+         'reshape',
+         'haven',
+         'rowr',
+         'lubridate',
+         'ggplot2',
+         'gridExtra'), require, character.only=T)
+
+setwd('C:\\Users\\sseo\\Desktop\\R\\weight_plot')
+lf <- grep('dat', list.files(), value=T)
+l1 <- lapply(1:4, function(x) read.csv(lf[x]) %>% 
+               select(-1) %>%
+               mutate(day = as.factor(day))) %>%
+  rbindlist(idcol = T) %>%
+  mutate(sex = ifelse(.id == 1 | .id == 3, 'men', 'women') %>% as.factor(),
+         year = ifelse(.id == 1 | .id == 2, 'former', 'latter') %>% as.factor()) %>%
+  select(-.id) %>% select(sex, year, 1:7)
+```
+
+#여자 / 10살 간격 / table
+```{r echo=F, warning=F, fig.height = 20, fig.width = 25}
+wom09_group <- l1 %>%
+  filter(year == 'latter', sex == 'women') %>%
+  mutate(month = substr(as.character(day), 1, 6),
+         age_group = cut(age, breaks = c(0, 30, 40, 50, 60, 100), 
+                         include.lowest = T,
+                         right = F,
+                         labels = c("30미만","30~39","40~49","50~59","60이상"))) %>%
+  group_by(month, age_group) %>%
+  summarise(weight = mean(weight),
+            height = mean(height),
+            BMI = mean(BMI),
+            drink = mean(drink),
+            workout = mean(workout),
+            n = n()) %>% 
+  as.data.frame() %>%
+  mutate(month = paste0(month, '01'))
+
+
+round(table(wom09_group$age_group) / sum(table(wom09_group$age_group)), 2)
+```
+
+#여자 / 10살 간격 / 키
+```{r echo=F, warning=F, fig.height = 15, fig.width = 25}
+ggplot(wom09_group, aes(x = as.factor(month),
+                        y = height,
+                        group = age_group,
+                        colour = age_group,
+                        size = n)) +
+  geom_line() +
+  theme_minimal() +
+  scale_x_discrete(breaks = paste0(2009:2015, '0101')) +
+  scale_size(guide = F) +  
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(size = rel(3)),
+        axis.text.y = element_text(size = rel(3)),
+        legend.position = c(1,0),
+        legend.justification = c(1,0),
+        legend.title = element_text(size = rel(4)),
+        legend.text = element_text(size=rel(4)),
+        legend.key.size = unit(1, 'cm'),
+        panel.grid.major.x = element_line(colour = 'black', size=1))  + 
+  guides(colour = guide_legend(override.aes = list(size=10))) +
+  geom_vline(xintercept = which(unique(wom09_group$month) %in% paste0(rep(2009:2015, 4), c('0301', '0601', '0901', '1201'))),
+             linetype='dashed', size=.05)
+```
+
+#여자 / 10살 간격 / 체중
+```{r echo=F, warning=F, fig.height = 15, fig.width = 25}
+ggplot(wom09_group, aes(x = as.factor(month),
+                        y = weight,
+                        group = age_group,
+                        colour = age_group,
+                        size = n)) +
+  geom_line() +
+  theme_minimal() +
+  scale_x_discrete(breaks = paste0(2009:2015, '0101')) +
+  scale_size(guide = F) +  
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(size = rel(3)),
+        axis.text.y = element_text(size = rel(3)),
+        legend.position = c(1,0),
+        legend.justification = c(1,0),
+        legend.title = element_text(size = rel(4)),
+        legend.text = element_text(size=rel(4)),
+        legend.key.size = unit(1, 'cm'),
+        panel.grid.major.x = element_line(colour = 'black', size=1))  + 
+  guides(colour = guide_legend(override.aes = list(size=10))) +
+  geom_vline(xintercept = which(unique(wom09_group$month) %in% paste0(rep(2009:2015, 4), c('0301', '0601', '0901', '1201'))),
+             linetype='dashed', size=.05) +
+  ylim(c(55,59))
+```
+
+#여자 / 10살 간격 / 키 & 체중 with scaling
+```{r echo=F, warning=F, fig.height = 20, fig.width = 25}
+ggplot(wom09_group, aes(x = as.factor(month),
+             y = scale(height) + 2,
+             size = n,
+             group=1,
+             colour = 'height')) +
+  geom_line() +
+  geom_line(aes(y = scale(weight), size = n, group=2, colour = 'weight')) +
+  theme_minimal() +
+  scale_x_discrete(breaks = paste0(2009:2015, '0101')) +
+  scale_size(guide = F) +  
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(size = rel(3)),
+        axis.text.y = element_text(size = rel(3)),
+        legend.title = element_blank(),
+        legend.text = element_text(size=rel(4)),
+        legend.key.size = unit(1, 'cm'),
+        panel.grid.major.x = element_line(colour = 'black', size=1)) +
+  facet_wrap(~age_group, nrow=5, scales = 'free_y') +
+  theme(strip.text = element_text(size=rel(4)),
+        legend.position = c(1,0),
+        legend.justification = c(1,0)) + 
+  guides(colour = guide_legend(override.aes = list(size=10))) +
+  geom_vline(xintercept = which(unique(wom09_group$month) %in% paste0(rep(2009:2015, 4), c('0301', '0601', '0901', '1201'))),
+             linetype='dashed', size=.05)
+```
+
+
+
+
+#남자 / 10살 간격 / table
+```{r echo=F, warning=F, fig.height = 20, fig.width = 25}
+men09_group <- l1 %>%
+  filter(year == 'latter', sex == 'men') %>%
+  mutate(month = substr(as.character(day), 1, 6),
+         age_group = cut(age, breaks = c(0, 30, 40, 50, 60, 100), 
+                         include.lowest = T,
+                         right = F,
+                         labels = c("30미만","30~39","40~49","50~59","60이상"))) %>%
+  group_by(month, age_group) %>%
+  summarise(weight = mean(weight),
+            height = mean(height),
+            BMI = mean(BMI),
+            drink = mean(drink),
+            workout = mean(workout),
+            n = n()) %>% 
+  as.data.frame() %>%
+  mutate(month = paste0(month, '01'))
+
+round(table(men09_group$age_group) / sum(table(men09_group$age_group)), 2)
+```
+
+#남자 / 10살 간격 / 키
+```{r echo=F, warning=F, fig.height = 15, fig.width = 25}
+ggplot(men09_group, aes(x = as.factor(month),
+                        y = height,
+                        group = age_group,
+                        colour = age_group,
+                        size = n)) +
+  geom_line() +
+  theme_minimal() +
+  scale_x_discrete(breaks = paste0(2009:2015, '0101')) +
+  scale_size(guide = F) +  
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(size = rel(3)),
+        axis.text.y = element_text(size = rel(3)),
+        legend.position = c(1,0),
+        legend.justification = c(1,0),
+        legend.title = element_text(size = rel(4)),
+        legend.text = element_text(size=rel(4)),
+        legend.key.size = unit(1, 'cm'),
+        panel.grid.major.x = element_line(colour = 'black', size=1))  + 
+  guides(colour = guide_legend(override.aes = list(size=10))) +
+  geom_vline(xintercept = which(unique(men09_group$month) %in% paste0(rep(2009:2015, 4), c('0301', '0601', '0901', '1201'))),
+             linetype='dashed', size=.05)
+```
+
+#남자 / 10살 간격 / 체중
+```{r echo=F, warning=F, fig.height = 15, fig.width = 25}
+ggplot(men09_group, aes(x = as.factor(month),
+                        y = weight,
+                        group = age_group,
+                        colour = age_group,
+                        size = n)) +
+  geom_line() +
+  theme_minimal() +
+  scale_x_discrete(breaks = paste0(2009:2015, '0101')) +
+  scale_size(guide = F) +  
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(size = rel(3)),
+        axis.text.y = element_text(size = rel(3)),
+        legend.position = c(1,0),
+        legend.justification = c(1,0),
+        legend.title = element_text(size = rel(4)),
+        legend.text = element_text(size=rel(4)),
+        legend.key.size = unit(1, 'cm'),
+        panel.grid.major.x = element_line(colour = 'black', size=1))  + 
+  guides(colour = guide_legend(override.aes = list(size=10))) +
+  geom_vline(xintercept = which(unique(men09_group$month) %in% paste0(rep(2009:2015, 4), c('0301', '0601', '0901', '1201'))),
+             linetype='dashed', size=.05) +
+  ylim(c(60,80))
+```
+
+#남자 / 10살 간격 / 키 & 체중
+```{r echo=F, warning=F, fig.height = 40, fig.width = 25}
+ggplot(men09_group, aes(x = as.factor(month),
+             y = scale(height) + 1,
+             size = n,
+             group=1,
+             colour = 'height')) +
+  geom_line() +
+  geom_line(aes(y = scale(weight), size = n, group=2, colour = 'weight')) +
+  theme_minimal() +
+  scale_x_discrete(breaks = paste0(2009:2015, '0101')) +
+  scale_size(guide = F) +  
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(size = rel(3)),
+        axis.text.y = element_text(size = rel(3)),
+        legend.position = c(1,0),
+        legend.justification = c(1,0),
+        legend.title = element_blank(),
+        legend.text = element_text(size=rel(4)),
+        legend.key.size = unit(1, 'cm'),
+        panel.grid.major.x = element_line(colour = 'black', size=1)) +
+  facet_wrap(~age_group, nrow=5, scales = 'free_y') +
+  theme(strip.text = element_text(size=rel(4))) + 
+  guides(colour = guide_legend(override.aes = list(size=10))) +
+  geom_vline(xintercept = which(unique(men09_group$month) %in% paste0(rep(2009:2015, 4), c('0301', '0601', '0901', '1201'))),
+             linetype='dashed', size=.05)
+```
+
+
+
+#여자, 남자 나이대 별 count
+```{r}
+table(wom09_group$age_group)
+table(men09_group$age_group)
+```
+
+
+
+
+
+
+
+
+```{r include=F, fig.height = 10, fig.width = 25}
+#여자 / 40, 60으로 3 그룹 
+
+wom09_group <- l1 %>%
+  filter(year == 'latter', sex == 'women') %>%
+  mutate(month = substr(as.character(day), 1, 6),
+         age_group = cut(age, breaks = c(0, 40, 60, 100), 
+                         include.lowest = T,
+                         right = F,
+                         labels = c("40미만","40~59", "60이상" ))) %>%
+  group_by(month, age_group) %>%
+  summarise(weight = mean(weight),
+            height = mean(height),
+            BMI = mean(BMI),
+            drink = mean(drink),
+            workout = mean(workout),
+            n = n()) %>% 
+  as.data.frame() %>%
+  mutate(month = paste0(month, '01'))
+
+
+ggplot(wom09_group, aes(x = as.factor(month),
+                        y = height,
+                        group = age_group,
+                        colour = age_group,
+                        size = n)) +
+  geom_line() +
+  theme_minimal() +
+  scale_x_discrete(breaks = paste0(2009:2015, '0101')) +
+  scale_size(guide = F) +  
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(size = rel(3)),
+        axis.text.y = element_text(size = rel(3)),
+        legend.title = element_text(size = rel(4)),
+        legend.text = element_text(size=rel(4)),
+        legend.key.size = unit(1, 'cm'),
+        panel.grid.major.x = element_line(colour = 'black', size=1)) 
+```
+
+
+
+
+```{r include=F, fig.height = 10, fig.width = 25}
+#남자 / 40, 60으로 3 그룹 
+men09_group <- l1 %>%
+  filter(year == 'latter', sex == 'men') %>%
+  mutate(month = substr(as.character(day), 1, 6),
+         age_group = cut(age, breaks = c(0, 40, 60, 100), 
+                         include.lowest = T,
+                         right = F,
+                         labels = c("40미만","40~59", "60이상" ))) %>%
+  group_by(month, age_group) %>%
+  summarise(weight = mean(weight),
+            height = mean(height),
+            BMI = mean(BMI),
+            drink = mean(drink),
+            workout = mean(workout),
+            n = n()) %>% 
+  as.data.frame() %>%
+  mutate(month = paste0(month, '01'))
+
+
+ggplot(men09_group, aes(x = as.factor(month),
+                        y = height,
+                        group = age_group,
+                        colour = age_group,
+                        size = n)) +
+  geom_line() +
+  theme_minimal() +
+  scale_x_discrete(breaks = paste0(2009:2015, '0101')) +
+  scale_size(guide = F) +  
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(size = rel(3)),
+        axis.text.y = element_text(size = rel(3)),
+        legend.title = element_text(size = rel(4)),
+        legend.text = element_text(size=rel(4)),
+        legend.key.size = unit(2, 'cm'),
+        panel.grid.major.x = element_line(colour = 'black', size=1)) 
+```
+
+
+
+```{r include=F, fig.height = 10, fig.width = 25}
+#여자 / 40, 50, 60으로 4 그룹 
+
+wom09_group <- l1 %>%
+  filter(year == 'latter', sex == 'women') %>%
+  mutate(month = substr(as.character(day), 1, 6),
+         age_group = cut(age, breaks = c(0, 40, 50, 60, 100), 
+                         include.lowest = T,
+                         right = F,
+                         labels = c("40미만","40~49","50~59", "60이상" ))) %>%
+  group_by(month, age_group) %>%
+  summarise(weight = mean(weight),
+            height = mean(height),
+            BMI = mean(BMI),
+            drink = mean(drink),
+            workout = mean(workout),
+            n = n()) %>% 
+  as.data.frame() %>%
+  mutate(month = paste0(month, '01'))
+
+
+ggplot(wom09_group, aes(x = as.factor(month),
+                        y = height,
+                        group = age_group,
+                        colour = age_group,
+                        size = n)) +
+  geom_line() +
+  theme_minimal() +
+  scale_x_discrete(breaks = paste0(2009:2015, '0101')) +
+  scale_size(guide = F) +  
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(size = rel(3)),
+        axis.text.y = element_text(size = rel(3)),
+        legend.title = element_text(size = rel(4)),
+        legend.text = element_text(size=rel(4)),
+        legend.key.size = unit(1, 'cm'),
+        panel.grid.major.x = element_line(colour = 'black', size=1)) 
+```
+
+
+
+
+```{r include=F, fig.height = 10, fig.width = 25}
+#남자 / 40, 50, 60으로 4 그룹 
+men09_group <- l1 %>%
+  filter(year == 'latter', sex == 'men') %>%
+  mutate(month = substr(as.character(day), 1, 6),
+         age_group = cut(age, breaks = c(0, 40, 50, 60, 100), 
+                         include.lowest = T,
+                         right = F,
+                         labels = c("40미만","40~49","50~59", "60이상" ))) %>%
+  group_by(month, age_group) %>%
+  summarise(weight = mean(weight),
+            height = mean(height),
+            BMI = mean(BMI),
+            drink = mean(drink),
+            workout = mean(workout),
+            n = n()) %>% 
+  as.data.frame() %>%
+  mutate(month = paste0(month, '01'))
+
+
+ggplot(men09_group, aes(x = as.factor(month),
+                        y = height,
+                        group = age_group,
+                        colour = age_group,
+                        size = n)) +
+  geom_line() +
+  theme_minimal() +
+  scale_x_discrete(breaks = paste0(2009:2015, '0101')) +
+  scale_size(guide = F) +  
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(size = rel(3)),
+        axis.text.y = element_text(size = rel(3)),
+        legend.title = element_text(size = rel(4)),
+        legend.text = element_text(size=rel(4)),
+        legend.key.size = unit(2, 'cm'),
+        panel.grid.major.x = element_line(colour = 'black', size=1)) 
+```
+
+
+
+```{r include=F, fig.height = 10, fig.width = 25}
+#남자 / 40, 47, 53, 60으로 5 그룹 
+
+men09_group <- l1 %>%
+  filter(year == 'latter', sex == 'men') %>%
+  mutate(month = substr(as.character(day), 1, 6),
+         age_group = cut(age, breaks = c(0, 40, 47, 53, 60, 100), 
+                         include.lowest = T,
+                         right = F,
+                         labels = c("40미만","40~46","47~52","53~59", "60이상" ))) %>%
+  group_by(month, age_group) %>%
+  summarise(weight = mean(weight),
+            height = mean(height),
+            BMI = mean(BMI),
+            drink = mean(drink),
+            workout = mean(workout),
+            n = n()) %>% 
+  as.data.frame() %>%
+  mutate(month = paste0(month, '01'))
+
+
+ggplot(men09_group, aes(x = as.factor(month),
+                        y = height,
+                        group = age_group,
+                        colour = age_group,
+                        size = n)) +
+  geom_line() +
+  theme_minimal() +
+  scale_x_discrete(breaks = paste0(2009:2015, '0101')) +
+  scale_size(guide = F) +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(size = rel(3)),
+        axis.text.y = element_text(size = rel(3)),
+        legend.title = element_text(size = rel(4)),
+        legend.text = element_text(size=rel(4)),
+        legend.key.size = unit(2, 'cm'),
+        panel.grid.major.x = element_line(colour = 'black', size=1)) 
+```
+
+
+
+
+
+
+
+
+

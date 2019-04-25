@@ -1,9 +1,10 @@
----
-output: html_document
-editor_options: 
-  chunk_output_type: console
----
 
+  
+    
+    
+2002~2008년과 2009~2015년의 검진 방식 간 차이가 있어 먼저 09년만 살펴봤습니다  
+drink는 월별 평균 알코올 양으로 0~60 값을 가지며 평균 10.765입니다  
+workout은 월별 평균 운동량으로 0~6 값을 가지며 평균 1.393입니다. 
 
 
 
@@ -32,169 +33,297 @@ l1 <- lapply(1:4, function(x) read.csv(lf[x]) %>%
 
 
 
-
-
-#여자 / 40, 60으로 3 그룹 
+##09년 이후 / 여자 / 키 & 체중 & BMI
 ```{r echo=F, fig.height = 10, fig.width = 25}
-wom09_group <- l1 %>%
+wom09 <- l1 %>%
   filter(year == 'latter', sex == 'women') %>%
-  mutate(month = substr(as.character(day), 1, 6),
-         age_group = cut(age, breaks = c(0, 40, 60, 100), 
-                         include.lowest = T,
-                         right = F,
-                         labels = c("40미만","40~59", "60이상" ))) %>%
-  group_by(month, age_group) %>%
+  mutate(month = substr(as.character(day), 1, 6)) %>%
+  group_by(month) %>%
   summarise(weight = mean(weight),
             height = mean(height),
             BMI = mean(BMI),
             drink = mean(drink),
-            workout = mean(workout),
-            n = n()) %>% 
-  as.data.frame() %>%
+            workout = mean(workout)) %>% 
   mutate(month = paste0(month, '01'))
 
-
-ggplot(wom09_group, aes(x = as.factor(month),
-                        y = height,
-                        group = age_group,
-                        colour = age_group,
-                        size = n)) +
-  geom_line() +
+ggplot(wom09, aes(x = as.factor(month))) +
+  geom_line(aes(y = scale(height) , group = 1, colour = 'height'), size=1.5) +
+  geom_line(aes(y = scale(weight) -4, group = 2, colour = 'weight'), size=1.5) +
+  geom_line(aes(y = scale(BMI) + 2.5, group = 3, colour = 'BMI'), size=1.5) +
   theme_minimal() +
   scale_x_discrete(breaks = paste0(2009:2015, '0101')) +
   theme(axis.title.x = element_blank(),
         axis.title.y = element_blank(),
         axis.text.x = element_text(size = rel(2)),
         axis.text.y = element_text(size = rel(2)),
-        legend.title = element_text(size = rel(4)),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        legend.position = c(1,0),
+        legend.justification = c(1,0),
+        legend.background = element_rect(size=rel(2)),
+        legend.title = element_blank(),
         legend.text = element_text(size=rel(4)),
-        legend.key.size = unit(1, 'cm'),
-        panel.grid.major.x = element_line(colour = 'black', size=1)) 
+        legend.key.size = unit(1, 'cm')) +
+  geom_vline(xintercept = which(wom09$month %in% paste0(rep(2009:2015, 4), c('0301', '0601', '0901', '1201'))),
+             linetype='dashed', alpha=.2, size=.05) +
+  geom_vline(xintercept = which(wom09$month %in% paste0(rep(2009:2015), '0101'))) +
+  ggtitle('변수의 패턴 간 연관성을 보기위해 scaling')
+```
+
+```{r echo = F}
+#3차원도 봐야
+
+#library(plotly)
 ```
 
 
 
-#남자 / 40, 60으로 3 그룹 
-```{r echo=F, fig.height = 10, fig.width = 25}
-men09_group <- l1 %>%
-  filter(year == 'latter', sex == 'men') %>%
-  mutate(month = substr(as.character(day), 1, 6),
-         age_group = cut(age, breaks = c(0, 40, 60, 100), 
-                         include.lowest = T,
-                         right = F,
-                         labels = c("40미만","40~59", "60이상" ))) %>%
-  group_by(month, age_group) %>%
+##09년 이후 / 여자 / 체중 & 음주량
+```{r echo=F, fig.height = 7, fig.width = 18}
+ggplot(wom09, 
+       aes(x=as.factor(month), y=scale(weight) + 2, group=1, colour='weight')) +
+  geom_line(size=1.5) +
+  geom_line(aes(y=scale(drink), colour='drink'), size=1.5) +
+  theme_minimal() +
+  scale_y_continuous(sec.axis = sec_axis(~., name = 'workout')) +
+  scale_x_discrete(breaks = paste0(2009:2015, '0101')) +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(size = rel(2)),
+        axis.text.y = element_text(size = rel(2)),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        legend.position = c(1,0),
+        legend.justification = c(1,0),
+        legend.background = element_rect(size=rel(2)),
+        legend.title = element_blank(),
+        legend.text = element_text(size=rel(2))) +
+  geom_vline(xintercept = which(wom09$month %in% paste0(rep(2009:2015, 4), c('0301', '0601', '0901', '1201'))),
+             linetype='dashed', alpha=.2, size=.05) +
+  geom_vline(xintercept = which(wom09$month %in% paste0(rep(2009:2015), '0101')))
+```
+
+
+##09년 이후 / 여자 / 체중 & 운동량
+```{r echo=F, fig.height = 7, fig.width = 18}
+ggplot(wom09, 
+       aes(x=as.factor(month), y=scale(weight) + 2, group=1, colour='weight')) +
+  geom_line(size=1.5) +
+  geom_line(aes(y=scale(workout), colour='workout'), size=1.5) +
+  theme_minimal() +
+  scale_y_continuous(sec.axis = sec_axis(~., name = 'workout')) +
+  scale_x_discrete(breaks = paste0(2009:2015, '0101')) +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(size = rel(2)),
+        axis.text.y = element_text(size = rel(2)),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        legend.position = c(1,0),
+        legend.justification = c(1,0),
+        legend.background = element_rect(size=rel(2)),
+        legend.title = element_blank(),
+        legend.text = element_text(size=rel(2))) +
+  geom_vline(xintercept = which(wom09$month %in% paste0(rep(2009:2015, 4), c('0301', '0601', '0901', '1201'))),
+             linetype='dashed', alpha=.2, size=.05) +
+  geom_vline(xintercept = which(wom09$month %in% paste0(rep(2009:2015), '0101')))
+```
+
+
+##09년 이후 / 여자 / BMI & 음주량
+```{r echo=F, fig.height = 7, fig.width = 18}
+ggplot(wom09, 
+       aes(x=as.factor(month), y=scale(BMI)+2, group=1, colour='BMI')) +
+  geom_line(size=1.5) +
+  geom_line(aes(y=scale(drink), colour='drink'), size=1.5) +
+  theme_minimal() +
+  scale_y_continuous(sec.axis = sec_axis(~., name = 'drink')) +
+  scale_x_discrete(breaks = paste0(2009:2015, '0101')) +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(size = rel(2)),
+        axis.text.y = element_text(size = rel(2)),
+        legend.position = c(1,0),
+        legend.justification = c(1,0),
+        legend.background = element_rect(size=rel(2)),
+        legend.title = element_blank(),
+        legend.text = element_text(size=rel(2))) +
+  geom_vline(xintercept = which(wom09$month %in% paste0(rep(2009:2015, 4), c('0301', '0601', '0901', '1201'))),
+             linetype='dashed', alpha=.2, size=.05) +
+  geom_vline(xintercept = which(wom09$month %in% paste0(rep(2009:2015), '0101')))
+```
+
+
+##09년 이후 / 여자 / BMI & 운동량
+```{r echo=F, fig.height = 7, fig.width = 18}
+ggplot(wom09, 
+       aes(x=as.factor(month), y=scale(BMI)+2, group=1, colour='BMI')) +
+  geom_line(size=1.5) +
+  geom_line(aes(y=scale(workout), colour='workout'), size=1.5) +
+  theme_minimal() +
+  scale_y_continuous(sec.axis = sec_axis(~., name = 'workout')) +
+  scale_x_discrete(breaks = paste0(2009:2015, '0101')) +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(size = rel(2)),
+        axis.text.y = element_text(size = rel(2)),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        legend.position = c(1,0),
+        legend.justification = c(1,0),
+        legend.background = element_rect(size=rel(2)),
+        legend.title = element_blank(),
+        legend.text = element_text(size=rel(2))) +
+  geom_vline(xintercept = which(wom09$month %in% paste0(rep(2009:2015, 4), c('0301', '0601', '0901', '1201'))),
+             linetype='dashed', alpha=.2, size=.05) +
+  geom_vline(xintercept = which(wom09$month %in% paste0(rep(2009:2015), '0101')))
+```
+
+
+
+##09년 이후 / 남자 / 키 & 체중 & BMI
+```{r echo=F, fig.height = 7, fig.width = 18}
+men09 <- l1 %>%
+  filter(year == 'latter' & sex == 'men') %>%
+  mutate(month = substr(as.character(day), 1, 6)) %>%
+  group_by(month) %>%
   summarise(weight = mean(weight),
             height = mean(height),
             BMI = mean(BMI),
             drink = mean(drink),
-            workout = mean(workout),
-            n = n()) %>% 
-  as.data.frame() %>%
+            workout = mean(workout)) %>% 
   mutate(month = paste0(month, '01'))
 
 
-ggplot(men09_group, aes(x = as.factor(month),
-                        y = height,
-                        group = age_group,
-                        colour = age_group,
-                        size = n)) +
-  geom_line() +
+ggplot(men09, aes(x = as.factor(month))) +
+  geom_line(aes(y = scale(height) +1, group = 1, colour = 'height'), size=1.5) +
+  geom_line(aes(y = scale(weight) -2, group = 2, colour = 'weight'), size=1.5) +
+  geom_line(aes(y = scale(BMI) + 3, group = 3, colour = 'BMI'), size=1.5) +
   theme_minimal() +
   scale_x_discrete(breaks = paste0(2009:2015, '0101')) +
   theme(axis.title.x = element_blank(),
         axis.title.y = element_blank(),
         axis.text.x = element_text(size = rel(2)),
         axis.text.y = element_text(size = rel(2)),
-        legend.title = element_text(size = rel(4)),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        legend.position = c(1,0),
+        legend.justification = c(1,0),
+        legend.background = element_rect(size=rel(2)),
+        legend.title = element_blank(),
         legend.text = element_text(size=rel(4)),
-        legend.key.size = unit(2, 'cm'),
-        panel.grid.major.x = element_line(colour = 'black', size=1)) 
+        legend.key.size = unit(1, 'cm')) +
+  geom_vline(xintercept = which(wom09$month %in% paste0(rep(2009:2015, 4), c('0301', '0601', '0901', '1201'))),
+             linetype='dashed', alpha=.2, size=.05) +
+  geom_vline(xintercept = which(wom09$month %in% paste0(rep(2009:2015), '0101'))) +
+  ggtitle('변수의 패턴 간 연관성을 보기위해 scaling')
 ```
 
 
 
-#여자 / 40, 50, 60으로 4 그룹 
-```{r echo=F, fig.height = 10, fig.width = 25}
-wom09_group <- l1 %>%
-  filter(year == 'latter', sex == 'women') %>%
-  mutate(month = substr(as.character(day), 1, 6),
-         age_group = cut(age, breaks = c(0, 40, 50, 60, 100), 
-                         include.lowest = T,
-                         right = F,
-                         labels = c("40미만","40~49","50~59", "60이상" ))) %>%
-  group_by(month, age_group) %>%
-  summarise(weight = mean(weight),
-            height = mean(height),
-            BMI = mean(BMI),
-            drink = mean(drink),
-            workout = mean(workout),
-            n = n()) %>% 
-  as.data.frame() %>%
-  mutate(month = paste0(month, '01'))
-
-
-ggplot(wom09_group, aes(x = as.factor(month),
-                        y = height,
-                        group = age_group,
-                        colour = age_group,
-                        size = n)) +
-  geom_line() +
+##09년 이후 / 남자 / 체중 & 음주량
+```{r echo=F, fig.height = 7, fig.width = 18}
+ggplot(men09, 
+       aes(x=as.factor(month), y=scale(weight), group=1, colour='weight')) +
+  geom_line(size=1.5) +
+  geom_line(aes(y=scale(drink) + 2, colour='drink'), size=1.5) +
   theme_minimal() +
+  scale_y_continuous(sec.axis = sec_axis(~., name = 'drink')) +
   scale_x_discrete(breaks = paste0(2009:2015, '0101')) +
   theme(axis.title.x = element_blank(),
         axis.title.y = element_blank(),
         axis.text.x = element_text(size = rel(2)),
         axis.text.y = element_text(size = rel(2)),
-        legend.title = element_text(size = rel(4)),
-        legend.text = element_text(size=rel(4)),
-        legend.key.size = unit(1, 'cm'),
-        panel.grid.major.x = element_line(colour = 'black', size=1)) 
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        legend.position = c(1,0),
+        legend.justification = c(1,0),
+        legend.background = element_rect(size=rel(2)),
+        legend.title = element_blank(),
+        legend.text = element_text(size=rel(2))) +
+  geom_vline(xintercept = which(men09$month %in% paste0(rep(2009:2015, 4), c('0301', '0601', '0901', '1201'))),
+             linetype='dashed', alpha=.2, size=.05) +
+  geom_vline(xintercept = which(men09$month %in% paste0(rep(2009:2015), '0101'))) 
 ```
 
 
-
-#남자 / 40, 50, 60으로 4 그룹 
-```{r echo=F, fig.height = 10, fig.width = 25}
-men09_group <- l1 %>%
-  filter(year == 'latter', sex == 'men') %>%
-  mutate(month = substr(as.character(day), 1, 6),
-         age_group = cut(age, breaks = c(0, 40, 50, 60, 100), 
-                         include.lowest = T,
-                         right = F,
-                         labels = c("40미만","40~49","50~59", "60이상" ))) %>%
-  group_by(month, age_group) %>%
-  summarise(weight = mean(weight),
-            height = mean(height),
-            BMI = mean(BMI),
-            drink = mean(drink),
-            workout = mean(workout),
-            n = n()) %>% 
-  as.data.frame() %>%
-  mutate(month = paste0(month, '01'))
-
-
-ggplot(men09_group, aes(x = as.factor(month),
-                        y = height,
-                        group = age_group,
-                        colour = age_group,
-                        size = n)) +
-  geom_line() +
+##09년 이후 / 남자 / 체중 & 운동량
+```{r echo=F, fig.height = 7, fig.width = 18}
+ggplot(men09, 
+       aes(x=as.factor(month), y=scale(weight)+2, group=1, colour='weight')) +
+  geom_line(size=1.5) +
+  geom_line(aes(y=scale(workout), colour='workout'), size=1.5) +
   theme_minimal() +
+  scale_y_continuous(sec.axis = sec_axis(~., name = 'workout')) +
   scale_x_discrete(breaks = paste0(2009:2015, '0101')) +
   theme(axis.title.x = element_blank(),
         axis.title.y = element_blank(),
         axis.text.x = element_text(size = rel(2)),
         axis.text.y = element_text(size = rel(2)),
-        legend.title = element_text(size = rel(4)),
-        legend.text = element_text(size=rel(4)),
-        legend.key.size = unit(2, 'cm'),
-        panel.grid.major.x = element_line(colour = 'black', size=1)) 
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        legend.position = c(1,0),
+        legend.justification = c(1,0),
+        legend.background = element_rect(size=rel(2)),
+        legend.title = element_blank(),
+        legend.text = element_text(size=rel(2))) +
+  geom_vline(xintercept = which(men09$month %in% paste0(rep(2009:2015, 4), c('0301', '0601', '0901', '1201'))),
+             linetype='dashed', alpha=.2, size=.05) +
+  geom_vline(xintercept = which(men09$month %in% paste0(rep(2009:2015), '0101'))) 
 ```
 
 
 
+##09년 이후 / 남자 / BMI & 음주량
+```{r echo=F, fig.height = 7, fig.width = 18}
+ggplot(men09, 
+       aes(x=as.factor(month), y=scale(BMI)+3, group=1, colour='BMI')) +
+  geom_line(size=1.5) +
+  geom_line(aes(y=scale(drink), colour='drink'), size=1.5) +
+  theme_minimal() +
+  scale_y_continuous(sec.axis = sec_axis(~., name = 'drink')) +
+  scale_x_discrete(breaks = paste0(2009:2015, '0101')) +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(size = rel(2)),
+        axis.text.y = element_text(size = rel(2)),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        legend.position = c(1,0.5),
+        legend.justification = c(1,0.5),
+        legend.background = element_rect(size=rel(2)),
+        legend.title = element_blank(),
+        legend.text = element_text(size=rel(2))) +
+  geom_vline(xintercept = which(men09$month %in% paste0(rep(2009:2015, 4), c('0301', '0601', '0901', '1201'))),
+             linetype='dashed', alpha=.2, size=.05) +
+  geom_vline(xintercept = which(men09$month %in% paste0(rep(2009:2015), '0101'))) 
+```
 
+
+##09년 이후 / 남자 / BMI & 운동량
+```{r echo=F, fig.height = 7, fig.width = 18}
+ggplot(men09, 
+       aes(x=as.factor(month), y=scale(BMI)+2, group=1, colour='BMI')) +
+  geom_line(size=1.5) +
+  geom_line(aes(y=scale(workout), colour='workout'), size=1.5) +
+  theme_minimal() +
+  scale_y_continuous(sec.axis = sec_axis(~., name = 'workout')) +
+  scale_x_discrete(breaks = paste0(2009:2015, '0101')) +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(size = rel(2)),
+        axis.text.y = element_text(size = rel(2)),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        legend.position = c(1,0),
+        legend.justification = c(1,0),
+        legend.background = element_rect(size=rel(2)),
+        legend.title = element_blank(),
+        legend.text = element_text(size=rel(2))) +
+  geom_vline(xintercept = which(men09$month %in% paste0(rep(2009:2015, 4), c('0301', '0601', '0901', '1201'))),
+             linetype='dashed', alpha=.2, size=.05) +
+  geom_vline(xintercept = which(men09$month %in% paste0(rep(2009:2015), '0101'))) 
+```
 
 
 
